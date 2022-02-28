@@ -1,6 +1,6 @@
 import { connectStreamSource, disconnectStreamSource } from "@hotwired/turbo"
 import { subscribeTo } from "./cable"
-import snakeize from "./snakeize"
+import { camelize, snakeize } from "./inflector"
 
 class TurboCableStreamSourceElement extends HTMLElement {
   async connectedCallback() {
@@ -13,8 +13,12 @@ class TurboCableStreamSourceElement extends HTMLElement {
     if (this.subscription) this.subscription.unsubscribe()
   }
 
-  dispatchMessageEvent(data) {
-    const event = new MessageEvent("message", { data })
+  dispatchMessageEvent(message) {
+    if(message?.metadata) {
+      const datasetUpdates = camelize(message.metadata)
+      Object.assign(this.dataset, datasetUpdates)
+    }
+    const event = new MessageEvent("message", { data: message.content })
     return this.dispatchEvent(event)
   }
 

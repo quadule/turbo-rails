@@ -3486,15 +3486,28 @@ var cable = Object.freeze({
   subscribeTo: subscribeTo
 });
 
-function walk(obj) {
+function camelize(obj) {
   if (!obj || typeof obj !== "object") return obj;
   if (obj instanceof Date || obj instanceof RegExp) return obj;
-  if (Array.isArray(obj)) return obj.map(walk);
+  if (Array.isArray(obj)) return obj.map(camelize);
+  return Object.keys(obj).reduce((function(acc, key) {
+    var camel = key.replace(/[_.-](\w|$)/g, (function(m, x) {
+      return x.toUpperCase();
+    }));
+    acc[camel] = camelize(obj[key]);
+    return acc;
+  }), {});
+}
+
+function snakeize(obj) {
+  if (!obj || typeof obj !== "object") return obj;
+  if (obj instanceof Date || obj instanceof RegExp) return obj;
+  if (Array.isArray(obj)) return obj.map(snakeize);
   return Object.keys(obj).reduce((function(acc, key) {
     var camel = key[0].toLowerCase() + key.slice(1).replace(/([A-Z]+)/g, (function(m, x) {
       return "_" + x.toLowerCase();
     }));
-    acc[camel] = walk(obj[key]);
+    acc[camel] = snakeize(obj[key]);
     return acc;
   }), {});
 }
@@ -3510,9 +3523,13 @@ class TurboCableStreamSourceElement extends HTMLElement {
     disconnectStreamSource(this);
     if (this.subscription) this.subscription.unsubscribe();
   }
-  dispatchMessageEvent(data) {
+  dispatchMessageEvent(message) {
+    if (message?.metadata) {
+      const datasetUpdates = camelize(message.metadata);
+      Object.assign(this.dataset, datasetUpdates);
+    }
     const event = new MessageEvent("message", {
-      data: data
+      data: message.content
     });
     return this.dispatchEvent(event);
   }
@@ -3522,7 +3539,7 @@ class TurboCableStreamSourceElement extends HTMLElement {
     return {
       channel: channel,
       signed_stream_name: signed_stream_name,
-      ...walk({
+      ...snakeize({
         ...this.dataset
       })
     };

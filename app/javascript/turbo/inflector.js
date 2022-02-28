@@ -17,15 +17,28 @@
 // COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-export default function walk (obj) {
+export function camelize (obj) {
     if (!obj || typeof obj !== 'object') return obj;
     if (obj instanceof Date || obj instanceof RegExp) return obj;
-    if (Array.isArray(obj)) return obj.map(walk);
+    if (Array.isArray(obj)) return obj.map(camelize);
+    return Object.keys(obj).reduce(function (acc, key) {
+        var camel = key.replace(/[_.-](\w|$)/g, function (m, x) {
+            return x.toUpperCase();
+        });
+        acc[camel] = camelize(obj[key]);
+        return acc;
+    }, {});
+};
+
+export function snakeize (obj) {
+    if (!obj || typeof obj !== 'object') return obj;
+    if (obj instanceof Date || obj instanceof RegExp) return obj;
+    if (Array.isArray(obj)) return obj.map(snakeize);
     return Object.keys(obj).reduce(function (acc, key) {
         var camel = key[0].toLowerCase() + key.slice(1).replace(/([A-Z]+)/g, function (m, x) {
             return '_' + x.toLowerCase();
         });
-        acc[camel] = walk(obj[key]);
+        acc[camel] = snakeize(obj[key]);
         return acc;
     }, {});
 };

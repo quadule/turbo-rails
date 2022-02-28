@@ -26,4 +26,8 @@ end
 
 class ActionCable::Channel::TestCase
   include ActionViewTestCaseExtensions
+
+  def assert_broadcast_on(stream, content, metadata: nil)
+    super stream, { content: content, metadata: metadata }
+  end
 end
